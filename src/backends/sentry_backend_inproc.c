@@ -7,6 +7,7 @@
 #include "sentry_envelope.h"
 #include "sentry_options.h"
 #include "sentry_scope.h"
+#include "sentry_symbolizer.h"
 #include "sentry_sync.h"
 #include "sentry_transport.h"
 #include "sentry_unix_pageallocator.h"
@@ -169,6 +170,20 @@ shutdown_inproc_backend(sentry_backend_t *UNUSED(backend))
 }
 #endif
 
+#if defined SENTRY_PLATFORM_ANDROID
+static void
+fill_frame(const sentry_frame_info_t *frame_info, void *arg)
+{
+    sentry_value_t frame = *(sentry_value_t *)arg;
+    sentry_value_set_by_key(frame, "image_addr",
+        sentry__value_new_addr((uint64_t)frame_info->load_addr));
+    sentry_value_set_by_key(
+        frame, "package", sentry_value_new_string(frame_info->object_name));
+    sentry_value_set_by_key(
+        frame, "function", sentry_value_new_string(frame_info->symbol));
+}
+#endif
+
 static sentry_value_t
 make_signal_event(
     const struct signal_slot *sig_slot, const sentry_ucontext_t *uctx)
@@ -220,8 +235,12 @@ make_signal_event(
     sentry_value_t frames = sentry__value_new_list_with_size(frame_count);
     for (size_t i = 0; i < frame_count; i++) {
         sentry_value_t frame = sentry_value_new_object();
-        sentry_value_set_by_key(frame, "instruction_addr",
-            sentry__value_new_addr((uint64_t)backtrace[frame_count - i - 1]));
+        void *ip = backtrace[frame_count - i - 1];
+#if defined SENTRY_PLATFORM_ANDROID
+        sentry__symbolize(ip, fill_frame, &frame);
+#endif
+        sentry_value_set_by_key(
+            frame, "instruction_addr", sentry__value_new_addr((uint64_t)ip));
         sentry_value_append(frames, frame);
     }
 

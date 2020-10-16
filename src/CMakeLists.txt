@@ -62,8 +62,16 @@ else()
 		sentry_unix_pageallocator.h
 		sentry_unix_spinlock.h
 		path/sentry_path_unix.c
-		symbolizer/sentry_symbolizer_unix.c
 	)
+	if(ANDROID)
+		sentry_target_sources_cwd(sentry
+			symbolizer/sentry_symbolizer_unix_demangled.cc
+		)
+	else()
+		sentry_target_sources_cwd(sentry
+			symbolizer/sentry_symbolizer_unix.c
+		)
+	endif()
 endif()
 
 # module finder
