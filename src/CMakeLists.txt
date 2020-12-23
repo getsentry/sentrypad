@@ -98,9 +98,15 @@ endif()
 # backends
 if(SENTRY_BACKEND_CRASHPAD)
     target_compile_definitions(sentry PRIVATE SENTRY_BACKEND_CRASHPAD)
-    sentry_target_sources_cwd(sentry
-        backends/sentry_backend_crashpad.cpp
-    )
+    if(IOS)
+        sentry_target_sources_cwd(sentry
+            backends/sentry_backend_crashpad_ios.cpp
+        )
+    else()
+        sentry_target_sources_cwd(sentry
+            backends/sentry_backend_crashpad.cpp
+        )
+    endif()
 elseif(SENTRY_BACKEND_BREAKPAD)
     target_compile_definitions(sentry PRIVATE SENTRY_BACKEND_BREAKPAD)
     sentry_target_sources_cwd(sentry

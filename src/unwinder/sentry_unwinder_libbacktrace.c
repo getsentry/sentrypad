@@ -13,12 +13,12 @@ sentry__unwind_stack_libbacktrace(
     if (addr) {
 #if defined(SENTRY_PLATFORM_MACOS) && __has_builtin(__builtin_available)
         if (__builtin_available(macOS 10.14, *))
-            return backtrace_from_fp(addr, ptrs, max_frames);
+            return (size_t)backtrace_from_fp(addr, ptrs, (int)max_frames);
 #endif
         return 0;
     } else if (uctx) {
         return 0;
     } else {
-        return backtrace(ptrs, max_frames);
+        return (size_t)backtrace(ptrs, (int)max_frames);
     }
 }

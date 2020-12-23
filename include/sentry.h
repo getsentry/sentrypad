@@ -31,7 +31,12 @@ extern "C" {
 #ifdef _WIN32
 #    define SENTRY_PLATFORM_WINDOWS
 #elif defined(__APPLE__)
-#    define SENTRY_PLATFORM_MACOS
+#    include <TargetConditionals.h>
+#    if defined(TARGET_OS_OSX) && TARGET_OS_OSX
+#        define SENTRY_PLATFORM_MACOS
+#    elif defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE
+#        define SENTRY_PLATFORM_IOS
+#    endif
 #    define SENTRY_PLATFORM_DARWIN
 #    define SENTRY_PLATFORM_UNIX
 #elif defined(__ANDROID__)

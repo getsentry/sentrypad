@@ -67,7 +67,7 @@ endif()
 
 if(WIN32)
 	set(SENTRY_DEFAULT_TRANSPORT "winhttp")
-elseif(APPLE OR LINUX)
+elseif((APPLE AND NOT IOS) OR LINUX) # TODO: iOS needs its own transport
 	set(SENTRY_DEFAULT_TRANSPORT "curl")
 else()
 	set(SENTRY_DEFAULT_TRANSPORT "none")
@@ -399,11 +399,15 @@ if(SENTRY_BACKEND_CRASHPAD)
 			$<BUILD_INTERFACE:crashpad::client>
 			$<INSTALL_INTERFACE:sentry_crashpad::client>
 		)
-		install(EXPORT crashpad_export NAMESPACE sentry_crashpad:: FILE sentry_crashpad-targets.cmake
-			DESTINATION "${CMAKE_INSTALL_CMAKEDIR}"
-		)
+		if(NOT IOS) # TODO: figure out whats going on here
+			install(EXPORT crashpad_export NAMESPACE sentry_crashpad:: FILE sentry_crashpad-targets.cmake
+				DESTINATION "${CMAKE_INSTALL_CMAKEDIR}"
+			)
+		endif()
 	endif()
-	add_dependencies(sentry crashpad::handler)
+	if(NOT IOS)
+		add_dependencies(sentry crashpad::handler)
+	endif()
 elseif(SENTRY_BACKEND_BREAKPAD)
 	option(SENTRY_BREAKPAD_SYSTEM "Use system breakpad" OFF)
 	if(SENTRY_BREAKPAD_SYSTEM)

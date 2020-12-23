@@ -264,7 +264,8 @@ sentry_user_consent_get(void)
 {
     sentry_user_consent_t rv = SENTRY_USER_CONSENT_UNKNOWN;
     SENTRY_WITH_OPTIONS (options) {
-        rv = sentry__atomic_fetch((long *)&options->user_consent);
+        rv = (sentry_user_consent_t)sentry__atomic_fetch(
+            (long *)&options->user_consent);
     }
     return rv;
 }
