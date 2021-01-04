@@ -1,5 +1,6 @@
 #include "sentry_options.h"
 #include "sentry_alloc.h"
+#include "sentry_attachment.h"
 #include "sentry_backend.h"
 #include "sentry_database.h"
 #include "sentry_logger.h"
@@ -59,13 +60,6 @@ sentry__options_incref(sentry_options_t *options)
 }
 
 void
-sentry__attachment_free(sentry_attachment_t *attachment)
-{
-    sentry__path_free(attachment->path);
-    sentry_free(attachment);
-}
-
-void
 sentry_options_free(sentry_options_t *opts)
 {
     if (!opts || sentry__atomic_fetch_and_add(&opts->refcount, -1) != 1) {
@@ -83,13 +77,8 @@ sentry_options_free(sentry_options_t *opts)
     sentry_transport_free(opts->transport);
     sentry__backend_free(opts->backend);
 
-    sentry_attachment_t *next_attachment = opts->attachments;
-    while (next_attachment) {
-        sentry_attachment_t *attachment = next_attachment;
-        next_attachment = attachment->next;
+    sentry__attachments_free(opts->attachments);
 
-        sentry__attachment_free(attachment);
-    }
     sentry__run_free(opts->run);
 
     sentry_free(opts);
@@ -283,26 +272,10 @@ sentry_options_set_system_crash_reporter_enabled(
     opts->system_crash_reporter_enabled = !!enabled;
 }
 
-static void
-add_attachment(sentry_options_t *opts, sentry_path_t *path)
-{
-    if (!path) {
-        return;
-    }
-    sentry_attachment_t *attachment = SENTRY_MAKE(sentry_attachment_t);
-    if (!attachment) {
-        sentry__path_free(path);
-        return;
-    }
-    attachment->path = path;
-    attachment->next = opts->attachments;
-    opts->attachments = attachment;
-}
-
 void
 sentry_options_add_attachment(sentry_options_t *opts, const char *path)
 {
-    add_attachment(opts, sentry__path_from_str(path));
+    sentry__attachment_add(&opts->attachments, sentry__path_from_str(path));
 }
 
 void
@@ -323,7 +296,7 @@ sentry_options_set_database_path(sentry_options_t *opts, const char *path)
 void
 sentry_options_add_attachmentw(sentry_options_t *opts, const wchar_t *path)
 {
-    add_attachment(opts, sentry__path_from_wstr(path));
+    sentry__attachment_add(&opts->attachments, sentry__path_from_wstr(path));
 }
 
 void

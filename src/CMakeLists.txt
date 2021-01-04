@@ -1,6 +1,8 @@
 sentry_target_sources_cwd(sentry
 	sentry_alloc.c
 	sentry_alloc.h
+	sentry_attachment.c
+	sentry_attachment.h
 	sentry_backend.c
 	sentry_backend.h
 	sentry_boot.h

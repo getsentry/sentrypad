@@ -1,3 +1,5 @@
+XX(attachments_add_dedupe)
+XX(attachments_add_remove)
 XX(background_worker)
 XX(basic_consent_tracking)
 XX(basic_function_transport)

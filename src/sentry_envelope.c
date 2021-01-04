@@ -364,7 +364,9 @@ sentry_envelope_serialize(const sentry_envelope_t *envelope, size_t *size_out)
 
     sentry__envelope_serialize_into_stringbuilder(envelope, &sb);
 
-    *size_out = sentry__stringbuilder_len(&sb);
+    if (size_out) {
+        *size_out = sentry__stringbuilder_len(&sb);
+    }
     return sentry__stringbuilder_into_string(&sb);
 }
 

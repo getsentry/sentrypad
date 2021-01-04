@@ -2,6 +2,7 @@ extern "C" {
 #include "sentry_boot.h"
 
 #include "sentry_alloc.h"
+#include "sentry_attachment.h"
 #include "sentry_backend.h"
 #include "sentry_core.h"
 #include "sentry_database.h"

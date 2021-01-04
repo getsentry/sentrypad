@@ -11,6 +11,19 @@ sentry__path_free(sentry_path_t *path)
     sentry_free(path);
 }
 
+bool
+sentry__path_eq(const sentry_path_t *path_a, const sentry_path_t *path_b)
+{
+    size_t i = 0;
+    while (path_a->path[i] == path_b->path[i]) {
+        if (path_a->path[i] == (sentry_pathchar_t)0) {
+            return true;
+        }
+        i++;
+    }
+    return false;
+}
+
 int
 sentry__path_remove_all(const sentry_path_t *path)
 {

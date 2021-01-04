@@ -1,4 +1,5 @@
 #include "sentry_scope.h"
+#include "sentry_attachment.h"
 #include "sentry_backend.h"
 #include "sentry_core.h"
 #include "sentry_database.h"
@@ -72,6 +73,7 @@ get_scope(void)
     g_scope.level = SENTRY_LEVEL_ERROR;
     g_scope.client_sdk = get_client_sdk();
     g_scope.session = NULL;
+    g_scope.attachments = NULL;
 
     g_scope_initialized = true;
 
@@ -92,6 +94,7 @@ sentry__scope_cleanup(void)
         sentry_value_decref(g_scope.contexts);
         sentry_value_decref(g_scope.breadcrumbs);
         sentry_value_decref(g_scope.client_sdk);
+        sentry__attachments_free(g_scope.attachments);
     }
     sentry__mutex_unlock(&g_lock);
 }

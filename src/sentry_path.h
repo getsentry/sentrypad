@@ -91,6 +91,11 @@ void sentry__path_free(sentry_path_t *path);
 const sentry_pathchar_t *sentry__path_filename(const sentry_path_t *path);
 
 /**
+ * Returns whether the two paths are equal.
+ */
+bool sentry__path_eq(const sentry_path_t *path_a, const sentry_path_t *path_b);
+
+/**
  * Returns whether the last path segment matches `filename`.
  */
 bool sentry__path_filename_matches(

@@ -6,6 +6,8 @@
 #include "sentry_session.h"
 #include "sentry_value.h"
 
+typedef struct sentry_attachment_s sentry_attachment_t;
+
 /**
  * This represents the current scope.
  */
@@ -20,6 +22,7 @@ typedef struct sentry_scope_s {
     sentry_level_t level;
     sentry_value_t client_sdk;
     sentry_session_t *session;
+    sentry_attachment_t *attachments;
 } sentry_scope_t;
 
 /**

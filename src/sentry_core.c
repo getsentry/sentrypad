@@ -5,6 +5,7 @@
 #include <string.h>
 
 #include "sentry_alloc.h"
+#include "sentry_attachment.h"
 #include "sentry_backend.h"
 #include "sentry_core.h"
 #include "sentry_database.h"
@@ -144,7 +145,8 @@ sentry_init(sentry_options_t *options)
     // the only way to get a reference to the scope is by locking it, the macro
     // does all that at once, including invoking the backends scope flush hook
     SENTRY_WITH_SCOPE_MUT (scope) {
-        (void)scope;
+        scope->attachments = options->attachments;
+        options->attachments = NULL;
     }
     if (backend && backend->user_consent_changed_func) {
         backend->user_consent_changed_func(backend);
@@ -360,21 +362,8 @@ sentry__prepare_event(const sentry_options_t *options, sentry_value_t event,
         goto fail;
     }
 
-    SENTRY_TRACE("adding attachments to envelope");
-    for (sentry_attachment_t *attachment = options->attachments; attachment;
-         attachment = attachment->next) {
-        sentry_envelope_item_t *item = sentry__envelope_add_from_path(
-            envelope, attachment->path, "attachment");
-        if (!item) {
-            continue;
-        }
-        sentry__envelope_item_set_header(item, "filename",
-#ifdef SENTRY_PLATFORM_WINDOWS
-            sentry__value_new_string_from_wstr(
-#else
-            sentry_value_new_string(
-#endif
-                sentry__path_filename(attachment->path)));
+    SENTRY_WITH_SCOPE (scope) {
+        sentry__apply_attachments_to_envelope(envelope, scope->attachments);
     }
 
     return envelope;
@@ -560,3 +549,41 @@ sentry_set_level(sentry_level_t level)
         scope->level = level;
     }
 }
+
+void
+sentry_add_attachment(const char *path)
+{
+    SENTRY_WITH_SCOPE_MUT (scope) {
+        sentry__attachment_add(
+            &scope->attachments, sentry__path_from_str(path));
+    }
+}
+
+void
+sentry_remove_attachment(const char *path)
+{
+    SENTRY_WITH_SCOPE_MUT (scope) {
+        sentry__attachment_remove(
+            &scope->attachments, sentry__path_from_str(path));
+    }
+}
+
+#ifdef SENTRY_PLATFORM_WINDOWS
+void
+sentry_add_attachmentw(const wchar_t *path)
+{
+    SENTRY_WITH_SCOPE_MUT (scope) {
+        sentry__attachment_add(
+            &scope->attachments, sentry__path_from_wstr(path));
+    }
+}
+
+void
+sentry_remove_attachmentw(const wchar_t *path)
+{
+    SENTRY_WITH_SCOPE_MUT (scope) {
+        sentry__attachment_remove(
+            &scope->attachments, sentry__path_from_wstr(path));
+    }
+}
+#endif

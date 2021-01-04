@@ -1,5 +1,7 @@
+#include "sentry_attachment.h"
 #include "sentry_envelope.h"
 #include "sentry_path.h"
+#include "sentry_scope.h"
 #include "sentry_string.h"
 #include "sentry_testsupport.h"
 #include <sentry.h>
@@ -90,4 +92,134 @@ SENTRY_TEST(lazy_attachments)
     sentry__path_free(non_existing);
 
     TEST_CHECK_INT_EQUAL(testdata.called, 2);
+}
+
+SENTRY_TEST(attachments_add_dedupe)
+{
+    sentry_options_t *options = sentry_options_new();
+    sentry_options_add_attachment(options, PREFIX ".a.txt");
+    sentry_options_add_attachment(options, PREFIX ".b.txt");
+
+    sentry_init(options);
+
+    sentry_add_attachment(PREFIX ".a.txt");
+    sentry_add_attachment(PREFIX ".b.txt");
+    sentry_add_attachment(PREFIX ".c.txt");
+#ifdef SENTRY_PLATFORM_WINDOWS
+    sentry_add_attachmentw(L".a.txt");
+    sentry_add_attachmentw(L".b.txt");
+    sentry_add_attachmentw(L".c.txt");
+#endif
+
+    sentry_path_t *path_a = sentry__path_from_str(PREFIX ".a.txt");
+    sentry_path_t *path_b = sentry__path_from_str(PREFIX ".b.txt");
+    sentry_path_t *path_c = sentry__path_from_str(PREFIX ".c.txt");
+
+    sentry__path_write_buffer(path_a, "aaa", 3);
+    sentry__path_write_buffer(path_b, "bbb", 3);
+    sentry__path_write_buffer(path_c, "ccc", 3);
+
+    sentry_envelope_t *envelope = sentry__envelope_new();
+    SENTRY_WITH_SCOPE (scope) {
+        sentry__apply_attachments_to_envelope(envelope, scope->attachments);
+    }
+    char *serialized = sentry_envelope_serialize(envelope, NULL);
+    sentry_envelope_free(envelope);
+
+    TEST_CHECK_STRING_EQUAL(serialized,
+        "{}\n"
+        "{\"type\":\"attachment\",\"length\":3,\"filename\":\".a.txt\"}\naaa\n"
+        "{\"type\":\"attachment\",\"length\":3,\"filename\":\".b.txt\"}\nbbb\n"
+        "{\"type\":\"attachment\",\"length\":3,\"filename\":\".c.txt\"}"
+        "\nccc");
+
+    sentry_free(serialized);
+
+    sentry_shutdown();
+
+    sentry__path_remove(path_a);
+    sentry__path_remove(path_b);
+    sentry__path_remove(path_c);
+
+    sentry__path_free(path_a);
+    sentry__path_free(path_b);
+    sentry__path_free(path_c);
+}
+
+SENTRY_TEST(attachments_add_remove)
+{
+    sentry_options_t *options = sentry_options_new();
+    sentry_options_add_attachment(options, PREFIX ".a.txt");
+    sentry_options_add_attachment(options, PREFIX ".c.txt");
+    sentry_options_add_attachment(options, PREFIX ".b.txt");
+
+    sentry_init(options);
+
+    sentry_add_attachment(PREFIX ".c.txt");
+    sentry_add_attachment(PREFIX ".d.txt");
+#ifdef SENTRY_PLATFORM_WINDOWS
+    sentry_add_attachmentw(L".e.txt");
+    sentry_add_attachmentw(L".d.txt");
+#endif
+
+    sentry_remove_attachment(PREFIX ".c.txt");
+    sentry_remove_attachment(PREFIX ".d.txt");
+#ifdef SENTRY_PLATFORM_WINDOWS
+    sentry_remove_attachmentw(L".e.txt");
+    sentry_remove_attachmentw(L".d.txt");
+#endif
+
+    sentry_path_t *path_a = sentry__path_from_str(PREFIX ".a.txt");
+    sentry_path_t *path_b = sentry__path_from_str(PREFIX ".b.txt");
+    sentry_path_t *path_c = sentry__path_from_str(PREFIX ".c.txt");
+
+    sentry__path_write_buffer(path_a, "aaa", 3);
+    sentry__path_write_buffer(path_b, "bbb", 3);
+    sentry__path_write_buffer(path_c, "ccc", 3);
+
+    sentry_envelope_t *envelope;
+    char *serialized;
+
+    envelope = sentry__envelope_new();
+    SENTRY_WITH_SCOPE (scope) {
+        sentry__apply_attachments_to_envelope(envelope, scope->attachments);
+    }
+    serialized = sentry_envelope_serialize(envelope, NULL);
+    sentry_envelope_free(envelope);
+
+    TEST_CHECK_STRING_EQUAL(serialized,
+        "{}\n"
+        "{\"type\":\"attachment\",\"length\":3,\"filename\":\".a.txt\"}\naaa\n"
+        "{\"type\":\"attachment\",\"length\":3,\"filename\":\".b.txt\"}"
+        "\nbbb");
+
+    sentry_free(serialized);
+
+    sentry_remove_attachment(PREFIX ".a.txt");
+    sentry_remove_attachment(PREFIX ".b.txt");
+#ifdef SENTRY_PLATFORM_WINDOWS
+    sentry_remove_attachmentw(L".b.txt");
+    sentry_remove_attachmentw(L".a.txt");
+#endif
+
+    envelope = sentry__envelope_new();
+    SENTRY_WITH_SCOPE (scope) {
+        sentry__apply_attachments_to_envelope(envelope, scope->attachments);
+    }
+    serialized = sentry_envelope_serialize(envelope, NULL);
+    sentry_envelope_free(envelope);
+
+    TEST_CHECK_STRING_EQUAL(serialized, "{}");
+
+    sentry_free(serialized);
+
+    sentry_shutdown();
+
+    sentry__path_remove(path_a);
+    sentry__path_remove(path_b);
+    sentry__path_remove(path_c);
+
+    sentry__path_free(path_a);
+    sentry__path_free(path_b);
+    sentry__path_free(path_c);
 }
