@@ -112,6 +112,27 @@ install
 
 Please refer to the CMake Manual for more details.
 
+**Windows**:
+Different configurations have different run-time requirements.  The `Debug`
+configuration uses the windows debug C runtime, whereas the `RelWithDebInfo`
+does not.  This may determine which version you can use with your executable.
+
+Some special notes regarding `cmake`:
+- cmake doesn't need the configuration int the `-B` step since it creates
+  all the `*.vcxproj` files at once.
+- for `cmake --build`, **do no** specify `--parallel`, but **do** specify your
+  `--config RelWithDebInfo` or whichever configuration is appropriate.
+
+In short, do something like
+```
+> cmake -B build
+> cmake --build build --config RelWithDebInfo
+> cmake --install build --prefix install --config RelWithDebInfo
+```
+
+In addition to the optional `winhttp.lib`, windows builds require linking
+with `version.lib` and `dbghelp.lib`
+
 **Android**:
 
 The CMake project can also be configured to correctly work with the Android NDK,
