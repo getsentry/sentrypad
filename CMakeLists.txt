@@ -449,6 +449,14 @@ elseif(SENTRY_BACKEND_BREAKPAD)
 		target_link_libraries(sentry PRIVATE
 			breakpad_client
 		)
+		set(breakpad_exes dump_syms)
+		if(TARGET macho_dump)
+			list(APPEND breakpad_exes macho_dump)
+		endif()
+		sentry_install(TARGETS ${breakpad_exes} EXPORT sentry
+			BUNDLE DESTINATION "${CMAKE_INSTALL_BINDIR}"
+			RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
+		)
 		if(NOT SENTRY_BUILD_SHARED_LIBS)
 			sentry_install(TARGETS breakpad_client EXPORT sentry
 				LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
