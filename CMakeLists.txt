@@ -250,13 +250,17 @@ target_compile_definitions(sentry PRIVATE SIZEOF_LONG=${CMAKE_SIZEOF_LONG})
 
 if(SENTRY_TRANSPORT_CURL)
 	find_package(CURL REQUIRED)
-	target_include_directories(sentry PRIVATE ${CURL_INCLUDE_DIR})
-	# The exported sentry target must not contain any path of the build machine, therefore use generator expressions
-	# FIXME: cmake 3.12 introduced the target CURL::libcurl
-	string(REPLACE ";" "$<SEMICOLON>" GENEX_CURL_LIBRARIES "${CURL_LIBRARIES}")
-	string(REPLACE ";" "$<SEMICOLON>" GENEX_CURL_COMPILE_DEFINITIONS "${CURL_COMPILE_DEFINITIONS}")
-	target_link_libraries(sentry PRIVATE $<BUILD_INTERFACE:${GENEX_CURL_LIBRARIES}>)
-	target_compile_definitions(sentry PRIVATE $<BUILD_INTERFACE:${GENEX_CURL_COMPILE_DEFINITIONS}>)
+	if(TARGET CURL::libcurl) # Only available in cmake 3.12+
+		target_link_libraries(sentry PRIVATE CURL::libcurl)
+	else()
+		# FIXME: Needed for cmake < 3.12 support (cmake 3.12 introduced the target CURL::libcurl)
+		target_include_directories(sentry PRIVATE ${CURL_INCLUDE_DIR})
+		# The exported sentry target must not contain any path of the build machine, therefore use generator expressions
+		string(REPLACE ";" "$<SEMICOLON>" GENEX_CURL_LIBRARIES "${CURL_LIBRARIES}")
+		string(REPLACE ";" "$<SEMICOLON>" GENEX_CURL_COMPILE_DEFINITIONS "${CURL_COMPILE_DEFINITIONS}")
+		target_link_libraries(sentry PRIVATE $<BUILD_INTERFACE:${GENEX_CURL_LIBRARIES}>)
+		target_compile_definitions(sentry PRIVATE $<BUILD_INTERFACE:${GENEX_CURL_COMPILE_DEFINITIONS}>)
+	endif()
 endif()
 
 set_property(TARGET sentry PROPERTY C_VISIBILITY_PRESET hidden)
